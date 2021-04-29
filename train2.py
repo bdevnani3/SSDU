@@ -53,7 +53,7 @@ kspace_train = np.expand_dims(kspace_train,3)
 kspace_shape = kspace_train.shape
 
 ##TODO(): GET actual sensitivity maps 
-sens_maps = np.zeros(kspace_shape)
+sens_maps = np.ones(kspace_shape)
 
 tf.logging.info('\n Normalize the kspace to 0-1 region')
 for ii in range(np.shape(kspace_train)[0]):
@@ -62,7 +62,10 @@ for ii in range(np.shape(kspace_train)[0]):
 nSlices, *_ = kspace_train.shape
 
 #TODO(): Use generated masks
-original_mask = np.full((args.nrow_GLOB, args.ncol_GLOB), 0.1)
+# mask_fn = create_mask_for_mask_type("random",[0.08], [4])
+# original_mask = mask_fn((1,34,640,372), 1)
+original_mask = np.zeros((args.nrow_GLOB, args.ncol_GLOB))
+original_mask[:,:50] = 1
 
 tf.logging.info(f'\n size of kspace: {kspace_train.shape}, maps: {sens_maps.shape}, mask: {original_mask.shape}')
 
