@@ -17,6 +17,7 @@ tf.logging.set_verbosity(tf.logging.INFO)
 
 from fastmri.data.subsample import create_mask_for_mask_type
 
+
 # if __name__ == "main":
 parser = parser_ops.get_parser()
 args = parser.parse_args()
@@ -65,7 +66,7 @@ nSlices, *_ = kspace_train.shape
 # mask_fn = create_mask_for_mask_type("random",[0.08], [4])
 # original_mask = mask_fn((1,34,640,372), 1)
 original_mask = np.zeros((args.nrow_GLOB, args.ncol_GLOB))
-original_mask[:,:50] = 1
+original_mask[:,:10] = 1
 
 tf.logging.info(f'\n size of kspace: {kspace_train.shape}, maps: {sens_maps.shape}, mask: {original_mask.shape}')
 
@@ -104,6 +105,9 @@ for ii in range(nSlices):
 if args.data_opt == 'Coronal_PD':
     trn_mask[:, :, 0:17] = np.ones((nSlices, args.nrow_GLOB, 17))
     trn_mask[:, :, 352:args.ncol_GLOB] = np.ones((nSlices, args.nrow_GLOB, 16))
+
+trn_mask[:, :, 0:20] = np.ones((nSlices, args.nrow_GLOB, 20))
+trn_mask[:, :, 352:args.ncol_GLOB] = np.ones((nSlices, args.nrow_GLOB, 20))
 
 # %% Prepare the data for the training
 sens_maps = np.transpose(sens_maps, (0, 3, 1, 2))
@@ -154,7 +158,10 @@ with tf.Session(config=config) as sess:
         tic = time.time()
         try:
             for jj in range(total_batch):
+                tf.logging.info("---------------------------------")
+                tf.logging.info(sess.run([np.amax(kspace_train), tf.reduce_max(ref_kspace), tf.reduce_max(ref_kspace_tensor)]))
                 tmp, _, _ = sess.run([loss, update_ops, optimizer])
+                tf.logging.info(f"Avg Cost : {tmp}, {loss}")
                 avg_cost += tmp / total_batch
             toc = time.time() - tic
             totalLoss.append(avg_cost)
