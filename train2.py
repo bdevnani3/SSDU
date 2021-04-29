@@ -16,6 +16,8 @@ tf.disable_v2_behavior()
 tf.logging.set_verbosity(tf.logging.INFO)
 
 from fastmri.data.subsample import create_mask_for_mask_type
+from fastmri.data import transforms
+from fastmri.data import subsample
 
 
 # if __name__ == "main":
@@ -65,8 +67,16 @@ nSlices, *_ = kspace_train.shape
 #TODO(): Use generated masks
 # mask_fn = create_mask_for_mask_type("random",[0.08], [4])
 # original_mask = mask_fn((1,34,640,372), 1)
-original_mask = np.zeros((args.nrow_GLOB, args.ncol_GLOB))
-original_mask[:,:10] = 1
+shape = (args.nrow_GLOB, args.ncol_GLOB)
+kspace_temp = transforms.to_tensor(kspace_train)
+mask = subsample.create_mask_for_mask_type("random", [0.08], [4])
+masked_kspace, mask = transforms.apply_mask(kspace_temp, mask)
+
+original_mask = np.ones(shape)
+mask = np.array(mask.squeeze(0).squeeze(0).squeeze(1)).astype(int)
+for i in range(mask.shape[0]):
+    s = mask[i]
+    original_mask[:,i] = s
 
 tf.logging.info(f'\n size of kspace: {kspace_train.shape}, maps: {sens_maps.shape}, mask: {original_mask.shape}')
 
@@ -89,6 +99,8 @@ for ii in range(nSlices):
 
     elif args.mask_type == 'Uniform':
         trn_mask[ii, ...], loss_mask[ii, ...] = ssdu_masker.uniform_selection(kspace_train[ii], original_mask, num_iter=ii)
+        # import ipdb
+        # ipdb.set_trace()
 
     else:
         raise ValueError('Invalid mask selection')
@@ -159,9 +171,8 @@ with tf.Session(config=config) as sess:
         try:
             for jj in range(total_batch):
                 tf.logging.info("---------------------------------")
-                tf.logging.info(sess.run([np.amax(kspace_train), tf.reduce_max(ref_kspace), tf.reduce_max(ref_kspace_tensor)]))
                 tmp, _, _ = sess.run([loss, update_ops, optimizer])
-                tf.logging.info(f"Avg Cost : {tmp}, {loss}")
+                tf.logging.info(f"Avg Cost : {tmp}")
                 avg_cost += tmp / total_batch
             toc = time.time() - tic
             totalLoss.append(avg_cost)
