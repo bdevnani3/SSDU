@@ -1,5 +1,6 @@
 import numpy as np
 import utils
+import tensorflow.compat.v1 as tf
 
 
 class ssdu_masks():
@@ -37,7 +38,7 @@ class ssdu_masks():
         center_ky = int(utils.find_center_ind(input_data, axes=(0, 2)))
 
         if num_iter == 0:
-            print(f'\n Gaussian selection is processing, rho = {self.rho:.2f}, center of kspace: center-kx: {center_kx}, center-ky: {center_ky}')
+            tf.logging.info(f'\n Gaussian selection is processing, rho = {self.rho:.2f}, center of kspace: center-kx: {center_kx}, center-ky: {center_ky}')
 
         temp_mask = np.copy(input_mask)
         temp_mask[center_kx - self.small_acs_block[0] // 2:center_kx + self.small_acs_block[0] // 2,
@@ -46,10 +47,14 @@ class ssdu_masks():
         loss_mask = np.zeros_like(input_mask)
         count = 0
 
+        tf.logging.info(f"{count} ,{np.int(np.ceil(np.sum(input_mask[:]) * self.rho))}")
+
         while count <= np.int(np.ceil(np.sum(input_mask[:]) * self.rho)):
 
             indx = np.int(np.round(np.random.normal(loc=center_kx, scale=(nrow - 1) / std_scale)))
             indy = np.int(np.round(np.random.normal(loc=center_ky, scale=(ncol - 1) / std_scale)))
+
+            print(indx,indy)
 
             if (0 <= indx < nrow and 0 <= indy < ncol and temp_mask[indx, indy] == 1 and loss_mask[indx, indy] != 1):
                 loss_mask[indx, indy] = 1

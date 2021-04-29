@@ -11,8 +11,9 @@ import parser_ops
 import masks.ssdu_masks as ssdu_masks
 import UnrollNet
 
-parser = parser_ops.get_parser()
-args = parser.parse_args()
+if __name__ == "main":
+    parser = parser_ops.get_parser()
+    args = parser.parse_args()
 os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 

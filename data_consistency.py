@@ -1,4 +1,4 @@
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tf_utils
 import parser_ops
 
@@ -112,7 +112,7 @@ def dc_block(rhs, sens_maps, mask, mu):
     """
     DC block employs conjugate gradient for data consistency,
     """
-
+    @tf.autograph.experimental.do_not_convert
     def cg_map_func(input_elems):
         cg_output = conj_grad(input_elems, mu)
 
@@ -130,6 +130,7 @@ def SSDU_kspace_transform(nw_output, sens_maps, mask):
 
     nw_output = tf_utils.tf_real2complex(nw_output)
 
+    @tf.autograph.experimental.do_not_convert
     def ssdu_map_fn(input_elems):
         nw_output_enc, sens_maps_enc, mask_enc = input_elems
         Encoder = data_consistency(sens_maps_enc, mask_enc)

@@ -1,8 +1,9 @@
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import data_consistency as ssdu_dc
 import tf_utils
 import models.networks as networks
 import parser_ops
+
 
 parser = parser_ops.get_parser()
 args = parser.parse_args()

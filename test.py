@@ -8,8 +8,9 @@ import time
 import utils
 import parser_ops
 
-parser = parser_ops.get_parser()
-args = parser.parse_args()
+if __name__ == "main":
+    parser = parser_ops.get_parser()
+    args = parser.parse_args()
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"

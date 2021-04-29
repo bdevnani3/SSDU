@@ -1,8 +1,9 @@
-import tensorflow as tf
 import math
 import os
 import parser_ops
 import UnrollNet
+import tensorflow.compat.v1 as tf
+
 
 parser = parser_ops.get_parser()
 args = parser.parse_args()
