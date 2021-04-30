@@ -19,6 +19,10 @@ from fastmri.data.subsample import create_mask_for_mask_type
 from fastmri.data import transforms
 from fastmri.data import subsample
 
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+sess = tf.Session(config=config)
+
 
 # if __name__ == "main":
 parser = parser_ops.get_parser()
@@ -47,23 +51,31 @@ config.allow_soft_placement = True
 # .......................Load the Data..........................................
 tf.logging.info('\n Loading {args.data_opt} data, acc rate : {args.acc_rate} mask type : {args.mask_type}')
 
-def crop(arr):
-    """Crop to 640x320"""
-    center_column = int(arr.shape[2]/2)
-    return arr[:,:,center_column - 160:center_column + 160]
+def center_crop(data, shape, row_offset):
+    if not (0 < shape[0] <= data.shape[-2] and 0 < shape[1] <= data.shape[-1]):
+        print(data.shape)
+        raise ValueError("Invalid shapes.")
+
+    w_from = (data.shape[-2] - shape[0]) // 2
+    h_from = (data.shape[-1] - shape[1]) // 2
+    w_to = w_from + shape[0]
+    h_to = h_from + shape[1]
+    print(w_from, w_to, h_from, h_to)
+
+    return data[..., w_from+row_offset:w_to+row_offset, h_from:h_to]
 
 try:
     # Saving as this compressed np array saves pre-processing time
-    kspace_train = np.load('data/kspace_train.npz')["kspace_train"]
+    kspace_train = np.load('data/kspace_train_dummy.npz')["kspace_train"]
 except:
     kspace_train = None
-    train_directory = "/srv/share4/ksarangmath3/mri/data/singlecoil_train/"
+    train_directory = "/srv/share4/ksarangmath3/mri/data/dummy/"
     for i,filename in enumerate(os.listdir(train_directory)):
         print(i)
         full_file_path = train_directory + filename
         if kspace_train is None:
             kspace_train = h5.File(full_file_path, "r")['kspace'][:]
-            kspace_train = crop(kspace_train)
+            kspace_train = center_crop(kspace_train, (640,320),0)
             kspace_train = np.expand_dims(kspace_train,3)
             kspace_train = [kspace_train]
         else:
@@ -77,11 +89,18 @@ except:
     print(np.array(kspace_train).shape)
     print(np.array(kspace_train)[0].shape)
 
-    np.savez_compressed('data/kspace_train', kspace_train=np.array(kspace_train))
+    np.savez_compressed('data/kspace_train_dummy', kspace_train=np.array(kspace_train))
 
 ## Adding dimension for coil
-kspace_train = np.expand_dims(kspace_train,3)
+# kspace_train = np.expand_dims(kspace_train,3)
+
+# kspace_train = np.squeeze(kspace_train, 3)
+# kspace_train = center_crop(kspace_train, (320,320),0)
+# kspace_train = np.expand_dims(kspace_train,3)
+
 kspace_shape = kspace_train.shape
+
+print(kspace_shape, "BRUH")
 
 ##TODO(): GET actual sensitivity maps 
 sens_maps = np.ones(kspace_shape)
@@ -132,6 +151,8 @@ for ii in range(nSlices):
 
     else:
         raise ValueError('Invalid mask selection')
+
+    # print(kspace_train.shape, np.tile(trn_mask[ii][..., np.newaxis], (1, 1, args.ncoil_GLOB)).shape)
 
     sub_kspace = kspace_train[ii] * np.tile(trn_mask[ii][..., np.newaxis], (1, 1, args.ncoil_GLOB))
     ref_kspace[ii, ...] = kspace_train[ii] * np.tile(loss_mask[ii][..., np.newaxis], (1, 1, args.ncoil_GLOB))
