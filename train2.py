@@ -65,16 +65,15 @@ except:
             kspace_train = h5.File(full_file_path, "r")['kspace'][:]
             kspace_train = crop(kspace_train)
             kspace_train = np.expand_dims(kspace_train,3)
+            kspace_train = [kspace_train]
         else:
             temp = h5.File(full_file_path, "r")['kspace'][:]
             temp = crop(temp)
             temp = np.expand_dims(temp,3)
-            kspace_train = np.concatenate((kspace_train,temp), axis=0)
+            kspace_train.append(temp)
 
-        # Ensure num slices is increasing
-        print(kspace_train.shape[0])
-        print()
-
+    print("concatenating")
+    kspace_train = np.concatenate((kspace_train), axis=0)
     print(np.array(kspace_train).shape)
     print(np.array(kspace_train)[0].shape)
 
