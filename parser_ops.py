@@ -17,13 +17,13 @@ def get_parser():
                         help='number of unrolled blocks')
     parser.add_argument('--nb_res_blocks', type=int, default=15,
                         help="number of residual blocks in ResNet")
-    parser.add_argument('--CG_Iter', type=int, default=10,
+    parser.add_argument('--CG_Iter', type=int, default=5,
                         help='number of Conjugate Gradient iterations for DC')
 
     # %% hyperparameters for the dataset
-    parser.add_argument('--data_opt', type=str, default='Coronal_PD',
+    parser.add_argument('--data_opt', type=str, default='fastmri_knee',
                         help=' directories for the kspace, sensitivity maps and mask')
-    parser.add_argument('--nrow_GLOB', type=int, default=640,
+    parser.add_argument('--nrow_GLOB', type=int, default=320,
                         help='number of rows of the slices in the dataset')
     parser.add_argument('--ncol_GLOB', type=int, default=320,
                         help='number of columns of the slices in the dataset')
@@ -31,7 +31,7 @@ def get_parser():
                         help='number of coils of the slices in the dataset')
 
     # %% hyperparameters for the SSDU
-    parser.add_argument('--mask_type', type=str, default='Gaussian',
+    parser.add_argument('--mask_type', type=str, default='Uniform',
                         help='mask selection for training and loss masks', choices=['Gaussian', 'Uniform'])
     parser.add_argument('--rho', type=float, default=0.4,
                         help='cardinality of the loss mask, \ rho = |\ Lambda| / |\ Omega|')

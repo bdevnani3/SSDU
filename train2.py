@@ -49,9 +49,9 @@ config.gpu_options.allow_growth = True
 config.allow_soft_placement = True
 
 # .......................Load the Data..........................................
-tf.logging.info('\n Loading {args.data_opt} data, acc rate : {args.acc_rate} mask type : {args.mask_type}')
+tf.logging.info(f' Loading {args.data_opt} data, acc rate : {args.acc_rate} mask type : {args.mask_type}')
 
-def center_crop(data, shape, row_offset):
+def center_crop(data, shape, row_offset=0):
     if not (0 < shape[0] <= data.shape[-2] and 0 < shape[1] <= data.shape[-1]):
         print(data.shape)
         raise ValueError("Invalid shapes.")
@@ -60,27 +60,28 @@ def center_crop(data, shape, row_offset):
     h_from = (data.shape[-1] - shape[1]) // 2
     w_to = w_from + shape[0]
     h_to = h_from + shape[1]
-    print(w_from, w_to, h_from, h_to)
 
     return data[..., w_from+row_offset:w_to+row_offset, h_from:h_to]
 
 try:
     # Saving as this compressed np array saves pre-processing time
-    kspace_train = np.load('data/kspace_train_dummy.npz')["kspace_train"]
+    print("Trying to use pre-loaded data")
+    kspace_train = np.load('data/kspace_train_center_crop.npz')["kspace_train"]
 except:
     kspace_train = None
-    train_directory = "/srv/share4/ksarangmath3/mri/data/dummy/"
+    train_directory = "/srv/share4/ksarangmath3/mri/data/singlecoil_train/"
+    print("Generating Dataset")
     for i,filename in enumerate(os.listdir(train_directory)):
         print(i)
         full_file_path = train_directory + filename
         if kspace_train is None:
             kspace_train = h5.File(full_file_path, "r")['kspace'][:]
-            kspace_train = center_crop(kspace_train, (640,320),0)
+            kspace_train = center_crop(kspace_train, (320,320),0)
             kspace_train = np.expand_dims(kspace_train,3)
             kspace_train = [kspace_train]
         else:
             temp = h5.File(full_file_path, "r")['kspace'][:]
-            temp = crop(temp)
+            temp = center_crop(temp, (320,320))
             temp = np.expand_dims(temp,3)
             kspace_train.append(temp)
 
@@ -89,7 +90,7 @@ except:
     print(np.array(kspace_train).shape)
     print(np.array(kspace_train)[0].shape)
 
-    np.savez_compressed('data/kspace_train_dummy', kspace_train=np.array(kspace_train))
+    np.savez_compressed('data/kspace_train_center_crop', kspace_train=np.array(kspace_train))
 
 ## Adding dimension for coil
 # kspace_train = np.expand_dims(kspace_train,3)
@@ -99,8 +100,6 @@ kspace_train = center_crop(kspace_train, (320,320),0)
 kspace_train = np.expand_dims(kspace_train,3)
 
 kspace_shape = kspace_train.shape
-
-print(kspace_shape, "BRUH")
 
 ##TODO(): GET actual sensitivity maps 
 sens_maps = np.ones(kspace_shape)
