@@ -19,9 +19,9 @@ from fastmri.data.subsample import create_mask_for_mask_type
 from fastmri.data import transforms
 from fastmri.data import subsample
 
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-sess = tf.Session(config=config)
+# config = tf.ConfigProto()
+# config.gpu_options.allow_growth = True
+# sess = tf.Session(config=config)
 
 
 # if __name__ == "main":
@@ -94,9 +94,9 @@ except:
 ## Adding dimension for coil
 # kspace_train = np.expand_dims(kspace_train,3)
 
-# kspace_train = np.squeeze(kspace_train, 3)
-# kspace_train = center_crop(kspace_train, (320,320),0)
-# kspace_train = np.expand_dims(kspace_train,3)
+kspace_train = np.squeeze(kspace_train, 3)
+kspace_train = center_crop(kspace_train, (320,320),0)
+kspace_train = np.expand_dims(kspace_train,3)
 
 kspace_shape = kspace_train.shape
 
