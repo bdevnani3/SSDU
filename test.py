@@ -8,6 +8,7 @@ import time
 import utils
 import parser_ops
 import tensorflow.compat.v1 as tf
+import tf_utils
 tf.disable_v2_behavior()
 tf.logging.set_verbosity(tf.logging.INFO)
 tf.disable_eager_execution()
@@ -167,6 +168,8 @@ loadChkPoint = tf.train.latest_checkpoint(saved_model_dir)
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
 
+SSIM_list = []
+
 with tf.Session(config=config) as sess:
     new_saver = tf.train.import_meta_graph(saved_model_dir + '/model_test.meta')
     new_saver.restore(sess, loadChkPoint)
@@ -222,13 +225,18 @@ with tf.Session(config=config) as sess:
         all_ref_slices.append(ref_image_test)
         all_input_slices.append(nw_input_test)
 
-        print(f"SSIM: {utils.getSSIM(ref_image_test, nw_input_test)}")
+        SSIM_list.append(utils.getSSIM(ref_image_test, nw_input_test))
+        print(f"SSIM: {SSIM_list[-1]}")
+
 
         print('\n Iteration: ', ii, 'elapsed time %f seconds' % toc)
+        break
 
-plt.figure()
-slice_num = 5
-plt.subplot(1, 3, 1), plt.imshow(np.abs(all_ref_slices[slice_num]), cmap='gray'), plt.title('ref')
-plt.subplot(1, 3, 2), plt.imshow(np.abs(all_input_slices[slice_num]), cmap='gray'), plt.title('input')
-plt.subplot(1, 3, 3), plt.imshow(np.abs(all_recon_slices[slice_num]), cmap='gray'), plt.title('recon')
-plt.show()
+print(np.mean(SSIM_list), 'FINAL SSIM')
+# plt.figure()
+
+# slice_num = 5
+# plt.subplot(1, 3, 1), plt.imshow(np.abs(all_ref_slices[slice_num]), cmap='gray'), plt.title('ref')
+# plt.subplot(1, 3, 2), plt.imshow(np.abs(all_input_slices[slice_num]), cmap='gray'), plt.title('input')
+# plt.subplot(1, 3, 3), plt.imshow(np.abs(all_recon_slices[slice_num]), cmap='gray'), plt.title('recon')
+# plt.show()
