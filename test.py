@@ -232,7 +232,7 @@ with tf.Session(config=config) as sess:
 
 
         print('\n Iteration: ', ii, 'elapsed time %f seconds' % toc)
-        break
+        # break
 
 print(np.mean(SSIM_list), 'FINAL SSIM')
 # plt.figure()
