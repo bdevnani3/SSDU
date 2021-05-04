@@ -12,6 +12,7 @@ import tf_utils
 tf.disable_v2_behavior()
 tf.logging.set_verbosity(tf.logging.INFO)
 tf.disable_eager_execution()
+import os
 
 from fastmri.data.subsample import create_mask_for_mask_type
 from fastmri.data import transforms
@@ -31,8 +32,9 @@ os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 # .......................Load the Data...........................................
 print('\n Loading ' + args.data_opt + ' test dataset...')
 # kspace_dir, coil_dir, mask_dir, saved_model_dir = utils.get_test_directory(args)
-saved_model_dir = "/srv/share4/ksarangmath3/mri/SSDU/saved_models/SSDU_fastmri_knee_100Epochs_Rate4_10Unrolls_UniformSelection"
-test_graph_generator = tf_utils.test_graph(saved_model_dir)
+saved_model_dir = "/srv/share4/ksarangmath3/mri/SSDU/saved_models/SSDU_fastmri_knee_100Epochs_Rate4_10Unrolls_UniformSelection/"
+if not os.path.exists(saved_model_dir+"model_test.meta"):
+    test_graph_generator = tf_utils.test_graph(saved_model_dir)
 
 # %% kspace and sensitivity maps are assumed to be in .h5 format and mask is assumed to be in .mat
 # Users can change these formats based on their dataset
