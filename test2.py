@@ -130,7 +130,6 @@ except:
 ## Adding dimension for coil
 # kspace_train = np.expand_dims(kspace_train,3)
 print(kspace_train.shape)
-# kspace_train = np.squeeze(kspace_train, 3)
 # kspace_train = center_crop(kspace_train, (320,320),0)
 # kspace_train = np.expand_dims(kspace_train,3)
 
@@ -148,16 +147,29 @@ nSlices, *_ = kspace_train.shape
 #TODO(): Use generated masks
 # mask_fn = create_mask_for_mask_type("random",[0.08], [4])
 # original_mask = mask_fn((1,34,640,372), 1)
+
+broken_mask = True
+
 shape = (args.nrow_GLOB, args.ncol_GLOB)
-kspace_temp = transforms.to_tensor(kspace_train)
+
+if not broken_mask:
+    kspace_temp = kspace_train.squeeze()
+    kspace_temp = transforms.to_tensor(kspace_temp)
+else:
+    kspace_temp = transforms.to_tensor(kspace_train)
 mask = subsample.create_mask_for_mask_type("random", [0.08], [4])
 masked_kspace, mask = transforms.apply_mask(kspace_temp, mask)
+print(kspace_temp.shape)
 
 original_mask = np.ones(shape)
 mask = np.array(mask.squeeze(0).squeeze(0).squeeze(1)).astype(int)
 for i in range(mask.shape[0]):
     s = mask[i]
     original_mask[:,i] = s
+
+plt.imsave("mask.png",original_mask, cmap="gray")
+
+
 
 tf.logging.info(f'\n size of kspace: {kspace_train.shape}, maps: {sens_maps.shape}, mask: {original_mask.shape}')
 
@@ -196,6 +208,11 @@ for ii in range(nSlices):
     ref_kspace[ii, ...] = kspace_train[ii] * np.tile(loss_mask[ii][..., np.newaxis], (1, 1, args.ncoil_GLOB))
     nw_input[ii, ...] = utils.sense1(sub_kspace, sens_maps[ii, ...])
 
+test_mask = np.complex64(np.tile(original_mask[np.newaxis, :, :], (nSlices, 1, 1)))
+print(test_mask.shape, trn_mask.shape, loss_mask.shape)
+test_mask[:, :, 0:20] = np.ones((nSlices, args.nrow_GLOB, 20))
+test_mask[:, :, 300:args.ncol_GLOB] = np.ones((nSlices, args.nrow_GLOB, 20))
+
 # %%  zeropadded outer edges of k-space with no signal- check github readme file for explanation for further explanations
 
 trn_mask[:, :, 0:20] = np.ones((nSlices, args.nrow_GLOB, 20))
@@ -227,8 +244,8 @@ ref_kspace_tensor, nw_input_tensor, sens_maps_tensor, trn_mask_tensor, loss_mask
 # %% make training model
 nw_output_img, nw_output_kspace, *_ = UnrollNet.UnrolledNet(nw_input_tensor, sens_maps_tensor, trn_mask_tensor, loss_mask_tensor).model
 scalar = tf.constant(0.5, dtype=tf.float32)
-loss = tf.multiply(scalar, tf.norm(ref_kspace_tensor - nw_output_kspace)) + \
-       tf.multiply(scalar, tf.norm(ref_kspace_tensor - nw_output_kspace, ord=1))
+loss = tf.multiply(scalar, tf.norm(ref_kspace_tensor - nw_output_kspace) / tf.norm(ref_kspace_tensor)) + \
+       tf.multiply(scalar, tf.norm(ref_kspace_tensor - nw_output_kspace, ord=1) / tf.norm(ref_kspace_tensor, ord=1))
 
 all_trainable_vars = tf.reduce_sum([tf.reduce_prod(v.shape) for v in tf.trainable_variables()])
 update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -249,10 +266,13 @@ with tf.Session(config=config) as sess:
     new_saver.restore(sess, loadChkPoint)
 
     tf.logging.info(f'SSDU Parameters: Epochs: {args.epochs} Batch Size: {args.batchSize}, Number of trainable parameters: {sess.run(all_trainable_vars)}, Iterations: {total_batch}')
-    feedDict = {kspaceP: ref_kspace, nw_inputP: nw_input, trn_maskP: trn_mask, loss_maskP: loss_mask, sens_mapsP: sens_maps}
+    if broken_mask:
+        feedDict = {kspaceP: ref_kspace, nw_inputP: nw_input, trn_maskP: trn_mask, loss_maskP: loss_mask, sens_mapsP: sens_maps}
+    else:
+        feedDict = {kspaceP: ref_kspace, nw_inputP: nw_input, trn_maskP: test_mask, loss_maskP: test_mask, sens_mapsP: sens_maps}
 
     tf.logging.info('Training...')
-    for ep in range(1, args.epochs + 1):
+    for ep in range(1, 2):
         sess.run(iterator.initializer, feed_dict=feedDict)
         avg_cost = 0
         tic = time.time()
@@ -270,13 +290,12 @@ with tf.Session(config=config) as sess:
                 tf.logging.info(f"Avg Cost : {tmp}")
                 print(out.shape, ref_image_test.shape)
                 
-                # SSIM_list.append(utils.getSSIM(ref_image_test, out))
-                # print(SSIM_list[-1])
+                SSIM_list.append(utils.getSSIM(ref_image_test, out))
+                print(SSIM_list[-1])
                 avg_cost += tmp / total_batch
-                if jj > 15:
-                    plt.imsave("recon_out.png",out, cmap="gray")
-                    plt.imsave("ref_image_test.png",ref_image_test, cmap="gray")
-                    break
+                if jj == 15:
+                    plt.imsave(saved_model_dir.split('/')[-1]+"_reconstruction.png",out, cmap="gray")
+                    plt.imsave(saved_model_dir.split('/')[-1]+"_groundtruth.png",ref_image_test, cmap="gray")
             toc = time.time() - tic
             totalLoss.append(avg_cost)
             tf.logging.info(f'Epoch: {ep} elapsed_time =""{toc}", "cost =", "{avg_cost}"')
