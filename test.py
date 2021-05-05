@@ -227,7 +227,7 @@ with tf.Session(config=config) as sess:
         all_ref_slices.append(ref_image_test)
         all_input_slices.append(nw_input_test)
 
-        SSIM_list.append(utils.getSSIM(ref_image_test, nw_input_test))
+        SSIM_list.append(utils.getSSIM(ref_image_test, nw_output_ssdu))
         print(f"SSIM: {SSIM_list[-1]}")
 
 
